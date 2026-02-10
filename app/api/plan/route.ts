@@ -35,7 +35,16 @@ Focus mode: ${mode === "quick" ? "30-60 minutes" : "2-3 hours"}
 `;
 
   try {
-    const response = await fetch("http://127.0.0.1:8080/v1/chat/completions", {
+    const baseUrl = process.env.AI_API_URL;
+
+    if (!baseUrl) {
+      return NextResponse.json(
+        { error: "AI endpoint not configured" },
+        { status: 500 },
+      );
+    }
+
+    const response = await fetch(`${baseUrl}/v1/chat/completions`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -58,7 +67,28 @@ Focus mode: ${mode === "quick" ? "30-60 minutes" : "2-3 hours"}
       throw new Error("Empty AI response");
     }
 
-    const plan = JSON.parse(raw);
+    const plan = JSON.parse(raw) as {
+      summary?: string;
+      immediateNextAction?: string;
+      steps?: unknown;
+      timeBlocks?: unknown;
+    };
+
+    if (
+      !plan.summary ||
+      !plan.immediateNextAction ||
+      !Array.isArray(plan.steps) ||
+      !Array.isArray(plan.timeBlocks) ||
+      !plan.timeBlocks.every(
+        (block) =>
+          block &&
+          typeof block === "object" &&
+          "duration" in block &&
+          "activity" in block,
+      )
+    ) {
+      throw new Error("Invalid plan schema from AI");
+    }
 
     return NextResponse.json(plan);
   } catch (error) {

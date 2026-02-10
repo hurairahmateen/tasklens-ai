@@ -111,38 +111,67 @@ Each response is unique and generated in real time by the local AI.
 ```bash
 git clone https://github.com/your-username/tasklens-ai.git
 cd tasklens-ai
-2️⃣ Install dependencies
+```
+
+### 2️⃣ Configure environment variables
+
+Copy the base environment file and create a local override:
+
+```bash
+copy .env .env.local
+```
+
+Update `AI_API_URL` in `.env.local` if your local LLM server uses a different host or port.
+
+### 3️⃣ Install dependencies
+
+```bash
 npm install
-3️⃣ Start the Next.js app
+```
+
+### 4️⃣ Start the Next.js app
+
+```bash
 npm run dev
+```
+
 App runs at:
 
 http://localhost:3000
-🤖 Setting Up the Local AI (Required)
+
+---
+
+## 🤖 Setting Up the Local AI (Required)
+
 This project uses a local LLM, not a cloud API.
 
-Requirements
-Windows, macOS, or Linux
+**Requirements**
 
-~5 GB RAM available
+- Windows, macOS, or Linux
+- ~5 GB RAM available
+- No GPU required (CPU works fine)
 
-No GPU required (CPU works fine)
+**Steps**
 
-Steps
-Download llama-cpp binaries
-https://github.com/ggerganov/llama.cpp/releases
+1. Download llama-cpp binaries:
+   https://github.com/ggerganov/llama.cpp/releases
 
-Download a GGUF model
-Recommended:
+2. Download a GGUF model (recommended):
 
 mistral-7b-instruct-v0.2.Q4_K_M.gguf
-Start the local AI server:
+
+3. Start the local AI server:
 
 ./llama-server.exe -m path/to/model.gguf --port 8080 --ctx-size 4096
-Confirm it’s running:
+
+4. Confirm it’s running:
 
 http://127.0.0.1:8080
-🧠 Why This Project Is Different
+
+---
+
+## 🧠 Why This Project Is Different
+
 ✅ No paid APIs
 
 ✅ No OpenAI dependency
@@ -156,4 +185,3 @@ http://127.0.0.1:8080
 ✅ Clean separation of concerns
 
 This project demonstrates practical AI engineering, not just prompt usage.
-```
