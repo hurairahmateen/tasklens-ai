@@ -1,31 +1,69 @@
 import { NextResponse } from "next/server";
 
 export async function POST(req: Request) {
-  const body = await req.json();
-  const { goal, mode } = body;
+  const { goal, mode } = await req.json();
 
   if (!goal || goal.trim().length < 5) {
     return NextResponse.json({ error: "Goal is too short" }, { status: 400 });
   }
 
-  // Mock focus plan (later replaced by AI)
-  const plan = {
-    goalSummary: goal,
-    nextAction:
-      mode === "quick"
-        ? "Start with a focused 30-minute session on the first step."
-        : "Block 2 hours and begin deep work on the first major task.",
-    steps: [
-      "Clarify what success looks like",
-      "Break the goal into smaller tasks",
-      "Start with the easiest task",
-      "Review progress and adjust",
-    ],
-    timeBlocks:
-      mode === "quick"
-        ? ["30 minutes focused work"]
-        : ["45 minutes work", "10 minutes break", "45 minutes work"],
-  };
+  const systemPrompt = `
+You are TaskLens AI, a focus coach.
 
-  return NextResponse.json(plan);
+Your job is to turn a user's goal into a focused, actionable plan.
+
+Rules:
+- Respond ONLY with valid JSON
+- No markdown
+- No explanations outside JSON
+- Be practical and concise
+
+JSON format:
+{
+  "goalSummary": string,
+  "nextAction": string,
+  "steps": string[],
+  "timeBlocks": string[]
+}
+`;
+
+  const userPrompt = `
+Goal: ${goal}
+Focus mode: ${mode === "quick" ? "30-60 minutes" : "2-3 hours"}
+`;
+
+  try {
+    const response = await fetch("http://127.0.0.1:8080/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "mistral",
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userPrompt },
+        ],
+        temperature: 0.4,
+      }),
+    });
+
+    const data = await response.json();
+
+    const raw = data.choices?.[0]?.message?.content;
+
+    if (!raw) {
+      throw new Error("Empty AI response");
+    }
+
+    const plan = JSON.parse(raw);
+
+    return NextResponse.json(plan);
+  } catch (error) {
+    console.error(error);
+    return NextResponse.json(
+      { error: "AI generation failed" },
+      { status: 500 },
+    );
+  }
 }
