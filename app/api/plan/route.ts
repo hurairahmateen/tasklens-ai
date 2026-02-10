@@ -20,10 +20,12 @@ Rules:
 
 JSON format:
 {
-  "goalSummary": string,
-  "nextAction": string,
+  "summary": string,
+  "immediateNextAction": string,
   "steps": string[],
-  "timeBlocks": string[]
+  "timeBlocks": [
+    { "duration": string, "activity": string }
+  ]
 }
 `;
 

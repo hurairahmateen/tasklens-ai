@@ -1,27 +1,22 @@
 "use client";
 
-import { useState } from "react";
-
-type FocusMode = "quick" | "deep";
-
-type FocusPlan = {
-  goalSummary: string;
-  nextAction: string;
-  steps: string[];
-  timeBlocks: string[];
-};
+import { useCallback, useState } from "react";
+import PlanDisplay from "./components/PlanDisplay";
+import { FocusMode, type PlanState } from "./types";
 
 export default function Home() {
   const [goal, setGoal] = useState("");
-  const [mode, setMode] = useState<FocusMode>("quick");
-  const [loading, setLoading] = useState(false);
-  const [plan, setPlan] = useState<FocusPlan | null>(null);
+  const [mode, setMode] = useState<FocusMode>(FocusMode.QUICK);
+  const [state, setState] = useState<PlanState>({
+    plan: null,
+    loading: false,
+    error: null,
+  });
 
-  async function handleGenerate() {
+  const handleGenerate = async () => {
     if (!goal.trim()) return;
 
-    setLoading(true);
-    setPlan(null);
+    setState((prev) => ({ ...prev, loading: true, error: null }));
 
     try {
       const res = await fetch("/api/plan", {
@@ -35,108 +30,151 @@ export default function Home() {
       }
 
       const data = await res.json();
-      setPlan(data);
-    } catch (err) {
-      console.error(err);
-      alert("Something went wrong. Try again.");
-    } finally {
-      setLoading(false);
+
+      setState({ plan: data, loading: false, error: null });
+
+      setTimeout(() => {
+        window.scrollTo({
+          top: document.body.scrollHeight,
+          behavior: "smooth",
+        });
+      }, 100);
+    } catch (error) {
+      setState((prev) => ({
+        ...prev,
+        loading: false,
+        error: error instanceof Error ? error.message : "Unknown error",
+      }));
     }
-  }
+  };
+
+  const handleCopy = useCallback(() => {
+    if (!state.plan) return;
+
+    const text = `
+Focus Plan: ${state.plan.summary}
+Immediate Action: ${state.plan.immediateNextAction}
+Steps:
+${state.plan.steps.map((s, i) => `${i + 1}. ${s}`).join("\n")}
+Time Blocks:
+${state.plan.timeBlocks
+  .map((block) => `- ${block.duration}: ${block.activity}`)
+  .join("\n")}
+    `.trim();
+
+    navigator.clipboard.writeText(text);
+    alert("Plan copied to clipboard!");
+  }, [state.plan]);
 
   return (
-    <main style={{ padding: 24, maxWidth: 720 }}>
-      <h1>TaskLens AI</h1>
-      <p>Turn your goals into focused, actionable plans.</p>
-
-      <div style={{ marginTop: 24 }}>
-        <label style={{ display: "block", marginBottom: 8 }}>
-          What do you want to work on?
-        </label>
-
-        <textarea
-          value={goal}
-          onChange={(e) => setGoal(e.target.value)}
-          placeholder="Example: I want to learn Next.js and build a small project"
-          rows={4}
-          style={{ width: "100%", padding: 12 }}
-        />
-
-        <div style={{ marginTop: 16 }}>
-          <strong>Focus mode:</strong>
-
-          <div style={{ display: "flex", gap: 12, marginTop: 8 }}>
-            <button
-              onClick={() => setMode("quick")}
-              style={{
-                padding: "8px 12px",
-                border: "1px solid #ccc",
-                background: mode === "quick" ? "#ddd" : "transparent",
-              }}
-            >
-              Quick focus (30–60 min)
-            </button>
-
-            <button
-              onClick={() => setMode("deep")}
-              style={{
-                padding: "8px 12px",
-                border: "1px solid #ccc",
-                background: mode === "deep" ? "#ddd" : "transparent",
-              }}
-            >
-              Deep work (2–3 hours)
-            </button>
-          </div>
-        </div>
-
-        <button
-          onClick={handleGenerate}
-          disabled={loading}
-          style={{
-            marginTop: 20,
-            padding: "10px 16px",
-            fontWeight: "bold",
-            opacity: loading ? 0.6 : 1,
-          }}
-        >
-          {loading ? "Generating..." : "Generate focus plan"}
-        </button>
+    <main className="max-w-4xl mx-auto px-4 py-16 md:py-24">
+      <div className="text-center mb-16">
+        <h2 className="text-4xl md:text-5xl font-extrabold text-zinc-100 tracking-tight mb-4">
+          Turn your goals into{" "}
+          <span className="text-emerald-500">actionable plans.</span>
+        </h2>
+        <p className="text-zinc-500 text-lg max-w-2xl mx-auto">
+          TaskLens AI strips away the noise and provides a focused execution
+          strategy for your most important work.
+        </p>
       </div>
 
-      <section style={{ marginTop: 40 }}>
-        <h2>Your focus plan</h2>
-
-        {loading && <p>Thinking about your plan...</p>}
-
-        {!loading && !plan && <p>No plan generated yet.</p>}
-
-        {!loading && plan && (
-          <div style={{ marginTop: 16 }}>
-            <p>
-              <strong>Goal:</strong> {plan.goalSummary}
-            </p>
-
-            <p>
-              <strong>Next action:</strong> {plan.nextAction}
-            </p>
-
-            <h3>Steps</h3>
-            <ul>
-              {plan.steps.map((step, i) => (
-                <li key={i}>{step}</li>
-              ))}
-            </ul>
-
-            <h3>Suggested time blocks</h3>
-            <ul>
-              {plan.timeBlocks.map((block, i) => (
-                <li key={i}>{block}</li>
-              ))}
-            </ul>
+      <div className="bg-zinc-900 border border-zinc-800 rounded-3xl p-6 md:p-10 shadow-xl max-w-2xl mx-auto">
+        <div className="space-y-8">
+          <div>
+            <label
+              htmlFor="goal"
+              className="block text-xs font-bold text-zinc-500 uppercase tracking-widest mb-3"
+            >
+              What is your primary goal?
+            </label>
+            <textarea
+              id="goal"
+              value={goal}
+              onChange={(event) => setGoal(event.target.value)}
+              placeholder="e.g., Build a personal portfolio website with Next.js..."
+              className="w-full h-32 bg-zinc-950 border border-zinc-800 rounded-xl px-5 py-4 text-zinc-100 placeholder-zinc-700 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500/50 transition-all resize-none"
+            />
           </div>
-        )}
-      </section>
+
+          <div>
+            <label className="block text-xs font-bold text-zinc-500 uppercase tracking-widest mb-3">
+              Select Focus Mode
+            </label>
+            <div className="grid grid-cols-2 gap-4">
+              <button
+                onClick={() => setMode(FocusMode.QUICK)}
+                className={`p-4 rounded-xl border transition-all text-left ${
+                  mode === FocusMode.QUICK
+                    ? "bg-emerald-500/10 border-emerald-500/50 text-emerald-100"
+                    : "bg-zinc-950 border-zinc-800 text-zinc-500 hover:border-zinc-700"
+                }`}
+              >
+                <div className="font-bold mb-1">Quick Focus</div>
+                <div className="text-xs opacity-70">30 – 60 minutes</div>
+              </button>
+              <button
+                onClick={() => setMode(FocusMode.DEEP)}
+                className={`p-4 rounded-xl border transition-all text-left ${
+                  mode === FocusMode.DEEP
+                    ? "bg-emerald-500/10 border-emerald-500/50 text-emerald-100"
+                    : "bg-zinc-950 border-zinc-800 text-zinc-500 hover:border-zinc-700"
+                }`}
+              >
+                <div className="font-bold mb-1">Deep Work</div>
+                <div className="text-xs opacity-70">2 – 3 hours</div>
+              </button>
+            </div>
+          </div>
+
+          <button
+            onClick={handleGenerate}
+            disabled={state.loading || !goal.trim()}
+            className="w-full py-4 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold rounded-xl shadow-lg shadow-emerald-900/20 transition-all flex items-center justify-center space-x-2"
+          >
+            {state.loading ? (
+              <>
+                <svg
+                  className="animate-spin h-5 w-5 text-white"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                >
+                  <circle
+                    className="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                  ></circle>
+                  <path
+                    className="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                  ></path>
+                </svg>
+                <span>Analyzing Goal...</span>
+              </>
+            ) : (
+              <span>Generate Focus Plan</span>
+            )}
+          </button>
+
+          {state.error && (
+            <div className="p-4 bg-red-500/10 border border-red-500/20 text-red-400 text-sm rounded-xl">
+              {state.error}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {state.plan && (
+        <PlanDisplay
+          plan={state.plan}
+          onCopy={handleCopy}
+          onRegenerate={handleGenerate}
+        />
+      )}
     </main>
   );
 }
