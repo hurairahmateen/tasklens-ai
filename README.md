@@ -37,7 +37,7 @@ Browser → Next.js UI → `/api/plan` → local llama.cpp server → model
 ## 🚀 Quick Start
 
 ```bash
-git clone https://github.com/your-username/tasklens-ai.git
+git clone https://github.com/hurairahmateen/tasklens-ai.git
 cd tasklens-ai
 copy .env .env.local
 npm install
@@ -55,7 +55,7 @@ App runs at: http://localhost:3000
 1. Download llama.cpp: https://github.com/ggerganov/llama.cpp/releases
 2. Download a GGUF model (recommended):
    `mistral-7b-instruct-v0.2.Q4_K_M.gguf`
-3. Start server:
+3. Start server (Windows):
 
 ```bash
 ./llama-server.exe -m path/to/model.gguf --port 8080 --ctx-size 4096
